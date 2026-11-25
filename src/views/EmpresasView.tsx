@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   Calendar,
@@ -36,6 +36,7 @@ import {
 } from '../utils/calculations';
 import { exportEmpresasExcel } from '../utils/planHelpers';
 import { QuickTaskModal } from '../components/QuickTaskModal';
+import { EmpresasVisitPlannerSection } from '../components/EmpresasVisitPlannerSection';
 
 interface EmpresasViewProps {
   companies: Company[];
@@ -128,6 +129,22 @@ export const EmpresasView: React.FC<EmpresasViewProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState('');
   const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const masterDetailRef = useRef<HTMLDivElement>(null);
+
+  const handleViewCompanyFromMap = (companyId: string) => {
+    const target = companies.find((c) => c.id === companyId);
+    if (!target) return;
+    setSubView('empresas');
+    if (categoryFilter !== 'Todas' && categoryFilter !== target.estado) {
+      setCategoryFilter(target.estado);
+    }
+    setSearch('');
+    setSelectedId(target.id);
+    setConfirmDeleteId(null);
+    window.requestAnimationFrame(() => {
+      masterDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   // Unified status-change modal state (motivo optional except Activa -> Dado de baja)
   const [statusChangeModal, setStatusChangeModal] = useState<{
@@ -1091,7 +1108,11 @@ export const EmpresasView: React.FC<EmpresasViewProps> = ({
         </div>
       ) : (
         /* EMPRESAS MASTER-DETAIL */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <>
+        <div
+          ref={masterDetailRef}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+        >
           {/* Left Master List (4 cols) */}
           <div className="lg:col-span-4 bg-[#F5F6F8] border border-[#E2E6EC] shadow-[0_1px_2px_rgba(16,16,20,0.04)] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-[#E2E6EC] bg-[#ECEFF3] flex items-center justify-between text-xs gap-2">
@@ -1601,6 +1622,12 @@ export const EmpresasView: React.FC<EmpresasViewProps> = ({
             )}
           </div>
         </div>
+
+        <EmpresasVisitPlannerSection
+          companies={companies}
+          onViewCompanyProfile={handleViewCompanyFromMap}
+        />
+        </>
       )}
 
       <QuickTaskModal
