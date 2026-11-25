@@ -345,6 +345,12 @@ export const DatosCloudView: React.FC<DatosCloudViewProps> = ({
         payments: Array.isArray(parsed.payments) ? parsed.payments : [],
         metaReports: Array.isArray(parsed.metaReports) ? parsed.metaReports : [],
         marketingLogs: Array.isArray(parsed.marketingLogs) ? parsed.marketingLogs : [],
+        marketingEspeciales: Array.isArray(parsed.marketingEspeciales)
+          ? parsed.marketingEspeciales
+          : [],
+        marketingReelsSorteos: Array.isArray(parsed.marketingReelsSorteos)
+          ? parsed.marketingReelsSorteos
+          : [],
         fidelizaciones: Array.isArray(parsed.fidelizaciones) ? parsed.fidelizaciones : [],
         companyActivities: Array.isArray(parsed.companyActivities)
           ? parsed.companyActivities

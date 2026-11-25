@@ -16,4 +16,6 @@ export const DIRTY_DOZEN_CASES = [
   { id: 10, name: 'Forged client timestamp', path: '/workspaces/ws1/metaReports/r1', expected: 'PERMISSION_DENIED' },
   { id: 11, name: 'Orphaned subcollection write', path: '/workspaces/missing_ws/marketingLogs/l1', expected: 'PERMISSION_DENIED' },
   { id: 12, name: 'Value poisoning invalid enum estado', path: '/workspaces/ws1/companies/c1', expected: 'PERMISSION_DENIED' },
+  { id: 13, name: 'Oversized or invalid rubros array on marketingEspeciales', path: '/workspaces/ws1/marketingEspeciales/e1', expected: 'PERMISSION_DENIED' },
+  { id: 14, name: 'Unsafe URL protocol or invalid categoria on marketingReelsSorteos', path: '/workspaces/ws1/marketingReelsSorteos/r1', expected: 'PERMISSION_DENIED' },
 ] as const;

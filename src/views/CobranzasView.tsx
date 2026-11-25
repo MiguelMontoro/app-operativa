@@ -1466,6 +1466,12 @@ export const CobranzasView: React.FC<CobranzasViewProps> = ({
         marketingLogs: Array.isArray(parsed.marketingLogs)
           ? parsed.marketingLogs
           : fullState.marketingLogs,
+        marketingEspeciales: Array.isArray(parsed.marketingEspeciales)
+          ? parsed.marketingEspeciales
+          : fullState.marketingEspeciales || [],
+        marketingReelsSorteos: Array.isArray(parsed.marketingReelsSorteos)
+          ? parsed.marketingReelsSorteos
+          : fullState.marketingReelsSorteos || [],
         fidelizaciones: Array.isArray(parsed.fidelizaciones)
           ? parsed.fidelizaciones
           : fullState.fidelizaciones,

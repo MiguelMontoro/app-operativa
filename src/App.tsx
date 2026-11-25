@@ -23,7 +23,9 @@ import {
   type CompanyActivityRecord,
   type CompanyStatus,
   type FidelizacionRecord,
+  type MarketingEspecial,
   type MarketingLog,
+  type MarketingReelSorteo,
   type MetaReport,
   type PaymentRecord,
   type PaymentStatus,
@@ -43,6 +45,8 @@ import {
   signOutTeam,
   subscribeWorkspace,
   upsertEntityInFirestore,
+  type WorkspaceCollectionName,
+  type WorkspaceEntity,
 } from './lib/firebase';
 import { PinGate } from './components/PinGate';
 import { CompanyModal } from './components/CompanyModal';
@@ -85,6 +89,12 @@ function loadInitialState(): BonusTicketState {
       marketingLogs: Array.isArray(parsed.marketingLogs)
         ? parsed.marketingLogs
         : SEED_DATA.marketingLogs,
+      marketingEspeciales: Array.isArray(parsed.marketingEspeciales)
+        ? parsed.marketingEspeciales
+        : SEED_DATA.marketingEspeciales,
+      marketingReelsSorteos: Array.isArray(parsed.marketingReelsSorteos)
+        ? parsed.marketingReelsSorteos
+        : SEED_DATA.marketingReelsSorteos,
       fidelizaciones: Array.isArray(parsed.fidelizaciones)
         ? parsed.fidelizaciones
         : SEED_DATA.fidelizaciones,
@@ -335,6 +345,16 @@ export default function App() {
           onMarketingLogs: (marketingLogs) => {
             if (marketingLogs.length > 0) setState((prev) => ({ ...prev, marketingLogs }));
           },
+          onMarketingEspeciales: (marketingEspeciales) => {
+            if (marketingEspeciales.length > 0) {
+              setState((prev) => ({ ...prev, marketingEspeciales }));
+            }
+          },
+          onMarketingReelsSorteos: (marketingReelsSorteos) => {
+            if (marketingReelsSorteos.length > 0) {
+              setState((prev) => ({ ...prev, marketingReelsSorteos }));
+            }
+          },
           onFidelizaciones: (fidelizaciones) => {
             if (fidelizaciones.length > 0) setState((prev) => ({ ...prev, fidelizaciones }));
           },
@@ -366,30 +386,7 @@ export default function App() {
     };
   }, []);
 
-  const syncUpsert = (
-    col:
-      | 'companies'
-      | 'tasks'
-      | 'planTasks'
-      | 'payments'
-      | 'metaReports'
-      | 'marketingLogs'
-      | 'fidelizaciones'
-      | 'companyActivities'
-      | 'cobranzaEvents'
-      | 'cobranzaResets',
-    item:
-      | Company
-      | WeeklyTask
-      | PlanTask
-      | PaymentRecord
-      | MetaReport
-      | MarketingLog
-      | FidelizacionRecord
-      | CompanyActivityRecord
-      | CobranzaEvent
-      | CobranzaResetRecord
-  ) => {
+  const syncUpsert = (col: WorkspaceCollectionName, item: WorkspaceEntity) => {
     if (firebaseUser && cloudSyncActive) {
       void upsertEntityInFirestore(firebaseUser, col, item.id, item).catch((err) => {
         console.error('Error sincronizando en Firestore:', err);
@@ -397,20 +394,7 @@ export default function App() {
     }
   };
 
-  const syncDelete = (
-    col:
-      | 'companies'
-      | 'tasks'
-      | 'planTasks'
-      | 'payments'
-      | 'metaReports'
-      | 'marketingLogs'
-      | 'fidelizaciones'
-      | 'companyActivities'
-      | 'cobranzaEvents'
-      | 'cobranzaResets',
-    id: string
-  ) => {
+  const syncDelete = (col: WorkspaceCollectionName, id: string) => {
     if (firebaseUser && cloudSyncActive) {
       void deleteEntityInFirestore(firebaseUser, col, id).catch((err) => {
         console.error('Error eliminando en Firestore:', err);
@@ -627,6 +611,44 @@ export default function App() {
       marketingLogs: prev.marketingLogs.filter((l) => l.id !== id),
     }));
     syncDelete('marketingLogs', id);
+  };
+
+  const handleSaveMarketingEspecial = (item: MarketingEspecial) => {
+    setState((prev) => {
+      const current = prev.marketingEspeciales || [];
+      const exists = current.some((e) => e.id === item.id);
+      return {
+        ...prev,
+        marketingEspeciales: exists
+          ? current.map((e) => (e.id === item.id ? item : e))
+          : [item, ...current],
+      };
+    });
+    syncUpsert('marketingEspeciales', item);
+  };
+
+  const handleDeleteMarketingEspecial = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      marketingEspeciales: (prev.marketingEspeciales || []).filter((e) => e.id !== id),
+    }));
+    syncDelete('marketingEspeciales', id);
+  };
+
+  const handleAddMarketingReelSorteo = (item: MarketingReelSorteo) => {
+    setState((prev) => ({
+      ...prev,
+      marketingReelsSorteos: [item, ...(prev.marketingReelsSorteos || [])],
+    }));
+    syncUpsert('marketingReelsSorteos', item);
+  };
+
+  const handleDeleteMarketingReelSorteo = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      marketingReelsSorteos: (prev.marketingReelsSorteos || []).filter((r) => r.id !== id),
+    }));
+    syncDelete('marketingReelsSorteos', id);
   };
 
   const handleAddFidelizacion = (item: FidelizacionRecord) => {
@@ -1035,10 +1057,15 @@ export default function App() {
                 companies={state.companies}
                 metaReports={state.metaReports}
                 marketingLogs={state.marketingLogs}
+                marketingEspeciales={state.marketingEspeciales || []}
+                marketingReelsSorteos={state.marketingReelsSorteos || []}
                 onAddMetaReport={handleAddMetaReport}
                 onDeleteMetaReport={handleDeleteMetaReport}
                 onSaveMarketingLog={handleSaveMarketingLog}
-                onDeleteMarketingLog={handleDeleteMarketingLog}
+                onSaveMarketingEspecial={handleSaveMarketingEspecial}
+                onDeleteMarketingEspecial={handleDeleteMarketingEspecial}
+                onAddMarketingReelSorteo={handleAddMarketingReelSorteo}
+                onDeleteMarketingReelSorteo={handleDeleteMarketingReelSorteo}
                 onAddPlanTask={handleAddPlanTask}
               />
             )}
@@ -1077,6 +1104,8 @@ export default function App() {
                     payments: [],
                     metaReports: [],
                     marketingLogs: [],
+                    marketingEspeciales: [],
+                    marketingReelsSorteos: [],
                     fidelizaciones: [],
                     companyActivities: [],
                     cobranzaEvents: [],

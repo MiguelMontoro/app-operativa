@@ -23,20 +23,26 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import type {
-  BonusTicketState,
-  CobranzaEvent,
-  CobranzaResetRecord,
-  Company,
-  CompanyActivityRecord,
-  CompanyStatus,
-  FidelizacionRecord,
-  FrecuenciaActualizacion,
-  MarketingLog,
-  MetaReport,
-  PaymentRecord,
-  PlanTask,
-  WeeklyTask,
+import {
+  MARKETING_ESPECIAL_RUBROS,
+  MARKETING_REEL_CATEGORIAS,
+  type BonusTicketState,
+  type CobranzaEvent,
+  type CobranzaResetRecord,
+  type Company,
+  type CompanyActivityRecord,
+  type CompanyStatus,
+  type FidelizacionRecord,
+  type FrecuenciaActualizacion,
+  type MarketingEspecial,
+  type MarketingEspecialRubro,
+  type MarketingLog,
+  type MarketingReelCategoria,
+  type MarketingReelSorteo,
+  type MetaReport,
+  type PaymentRecord,
+  type PlanTask,
+  type WeeklyTask,
 } from '../types';
 
 export enum OperationType {
@@ -286,7 +292,7 @@ function toMetaReportDoc(report: MetaReport, ownerId: string, workspaceId: strin
   return {
     ownerId,
     workspaceId,
-    periodo: clampString(report.periodo || 'Período', 40),
+    periodo: clampString(report.periodo || 'Período', 100),
     fechaCarga: clampString(report.fechaCarga || new Date().toISOString().slice(0, 10), 20),
     origen: report.origen,
     alcance: Math.max(0, Number(report.alcance) || 0),
@@ -313,6 +319,64 @@ function toMarketingLogDoc(log: MarketingLog, ownerId: string, workspaceId: stri
     empresaNombre: clampString(log.empresaNombre, 160),
     fecha: clampString(log.fecha || new Date().toISOString().slice(0, 10), 20),
     notas: clampString(log.notas, 600),
+  };
+}
+
+function toMarketingEspecialDoc(
+  item: MarketingEspecial,
+  ownerId: string,
+  workspaceId: string
+) {
+  const today = new Date().toISOString().slice(0, 10);
+  const safeInicio = /^\d{4}-\d{2}-\d{2}$/.test(item.fechaInicio) ? item.fechaInicio : today;
+  const safeFinRaw = /^\d{4}-\d{2}-\d{2}$/.test(item.fechaFin) ? item.fechaFin : safeInicio;
+  const safeFin = safeFinRaw < safeInicio ? safeInicio : safeFinRaw;
+  const allowedRubros = MARKETING_ESPECIAL_RUBROS as readonly string[];
+  const safeRubros = Array.from(
+    new Set(
+      (Array.isArray(item.rubros) ? item.rubros : []).filter((r): r is MarketingEspecialRubro =>
+        allowedRubros.includes(r)
+      )
+    )
+  ).slice(0, 14);
+
+  return {
+    ownerId,
+    workspaceId,
+    nombre: clampString(item.nombre || 'Especial Mensual', 160),
+    fechaInicio: safeInicio,
+    fechaFin: safeFin,
+    rubros: safeRubros,
+    video3DiasAntes: Boolean(item.video3DiasAntes),
+    placa1DiaAntes: Boolean(item.placa1DiaAntes),
+    historiasDelDia: Boolean(item.historiasDelDia),
+    observaciones: clampString(item.observaciones, 600),
+  };
+}
+
+function toMarketingReelSorteoDoc(
+  item: MarketingReelSorteo,
+  ownerId: string,
+  workspaceId: string
+) {
+  const today = new Date().toISOString().slice(0, 10);
+  const safeFecha = /^\d{4}-\d{2}-\d{2}$/.test(item.fecha) ? item.fecha : today;
+  const allowedCats = MARKETING_REEL_CATEGORIAS as readonly string[];
+  const safeCategoria: MarketingReelCategoria = allowedCats.includes(item.categoria)
+    ? item.categoria
+    : 'Reel Comunidad (Abogados / Psicólogos / USPT / TP)';
+  const rawEnlace = clampString(item.enlace?.trim(), 500);
+  const safeEnlace = /^https?:\/\/.+/.test(rawEnlace) ? rawEnlace : '';
+
+  return {
+    ownerId,
+    workspaceId,
+    fecha: safeFecha,
+    categoria: safeCategoria,
+    titulo: clampString(item.titulo || 'Contenido Marketing', 200),
+    empresaId: clampString(item.empresaId, 128),
+    empresaNombre: clampString(item.empresaNombre, 160),
+    enlace: safeEnlace,
   };
 }
 
@@ -486,6 +550,24 @@ export async function pushStateToFirestore(user: User, state: BonusTicketState):
       updatedAt: serverTimestamp(),
     });
   }
+  for (const esp of state.marketingEspeciales || []) {
+    const id = esp.id.replace(/[^a-zA-Z0-9_-]/g, '') || `mesp_${Date.now()}`;
+    const ref = doc(db, 'workspaces', workspaceId, 'marketingEspeciales', id);
+    batch.set(ref, {
+      ...toMarketingEspecialDoc(esp, ownerId, workspaceId),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  for (const reel of state.marketingReelsSorteos || []) {
+    const id = reel.id.replace(/[^a-zA-Z0-9_-]/g, '') || `mreel_${Date.now()}`;
+    const ref = doc(db, 'workspaces', workspaceId, 'marketingReelsSorteos', id);
+    batch.set(ref, {
+      ...toMarketingReelSorteoDoc(reel, ownerId, workspaceId),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
   for (const fid of state.fidelizaciones || []) {
     const id = fid.id.replace(/[^a-zA-Z0-9_-]/g, '') || `fid_${Date.now()}`;
     const ref = doc(db, 'workspaces', workspaceId, 'fidelizaciones', id);
@@ -530,31 +612,39 @@ export async function pushStateToFirestore(user: User, state: BonusTicketState):
   }
 }
 
+export type WorkspaceCollectionName =
+  | 'companies'
+  | 'tasks'
+  | 'planTasks'
+  | 'payments'
+  | 'metaReports'
+  | 'marketingLogs'
+  | 'marketingEspeciales'
+  | 'marketingReelsSorteos'
+  | 'fidelizaciones'
+  | 'companyActivities'
+  | 'cobranzaEvents'
+  | 'cobranzaResets';
+
+export type WorkspaceEntity =
+  | Company
+  | WeeklyTask
+  | PlanTask
+  | PaymentRecord
+  | MetaReport
+  | MarketingLog
+  | MarketingEspecial
+  | MarketingReelSorteo
+  | FidelizacionRecord
+  | CompanyActivityRecord
+  | CobranzaEvent
+  | CobranzaResetRecord;
+
 export async function upsertEntityInFirestore(
   user: User,
-  colName:
-    | 'companies'
-    | 'tasks'
-    | 'planTasks'
-    | 'payments'
-    | 'metaReports'
-    | 'marketingLogs'
-    | 'fidelizaciones'
-    | 'companyActivities'
-    | 'cobranzaEvents'
-    | 'cobranzaResets',
+  colName: WorkspaceCollectionName,
   id: string,
-  entity:
-    | Company
-    | WeeklyTask
-    | PlanTask
-    | PaymentRecord
-    | MetaReport
-    | MarketingLog
-    | FidelizacionRecord
-    | CompanyActivityRecord
-    | CobranzaEvent
-    | CobranzaResetRecord
+  entity: WorkspaceEntity
 ): Promise<void> {
   const workspaceId = user.uid;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -567,6 +657,8 @@ export async function upsertEntityInFirestore(
   else if (colName === 'planTasks') payload = toPlanTaskDoc(entity as PlanTask, user.uid, workspaceId);
   else if (colName === 'payments') payload = toPaymentDoc(entity as PaymentRecord, user.uid, workspaceId);
   else if (colName === 'metaReports') payload = toMetaReportDoc(entity as MetaReport, user.uid, workspaceId);
+  else if (colName === 'marketingEspeciales') payload = toMarketingEspecialDoc(entity as MarketingEspecial, user.uid, workspaceId);
+  else if (colName === 'marketingReelsSorteos') payload = toMarketingReelSorteoDoc(entity as MarketingReelSorteo, user.uid, workspaceId);
   else if (colName === 'fidelizaciones') payload = toFidelizacionDoc(entity as FidelizacionRecord, user.uid, workspaceId);
   else if (colName === 'companyActivities') payload = toCompanyActivityDoc(entity as CompanyActivityRecord, user.uid, workspaceId);
   else if (colName === 'cobranzaEvents') payload = toCobranzaEventDoc(entity as CobranzaEvent, user.uid, workspaceId);
@@ -596,17 +688,7 @@ export async function upsertEntityInFirestore(
 
 export async function deleteEntityInFirestore(
   user: User,
-  colName:
-    | 'companies'
-    | 'tasks'
-    | 'planTasks'
-    | 'payments'
-    | 'metaReports'
-    | 'marketingLogs'
-    | 'fidelizaciones'
-    | 'companyActivities'
-    | 'cobranzaEvents'
-    | 'cobranzaResets',
+  colName: WorkspaceCollectionName,
   id: string
 ): Promise<void> {
   const workspaceId = user.uid;
@@ -628,6 +710,8 @@ export function subscribeWorkspace(
     onPayments: (items: PaymentRecord[]) => void;
     onMetaReports: (items: MetaReport[]) => void;
     onMarketingLogs: (items: MarketingLog[]) => void;
+    onMarketingEspeciales: (items: MarketingEspecial[]) => void;
+    onMarketingReelsSorteos: (items: MarketingReelSorteo[]) => void;
     onFidelizaciones: (items: FidelizacionRecord[]) => void;
     onCompanyActivities: (items: CompanyActivityRecord[]) => void;
     onCobranzaEvents: (items: CobranzaEvent[]) => void;
@@ -638,17 +722,7 @@ export function subscribeWorkspace(
   const unsubs: Array<() => void> = [];
 
   const sub = <T extends { id: string }>(
-    colName:
-      | 'companies'
-      | 'tasks'
-      | 'planTasks'
-      | 'payments'
-      | 'metaReports'
-      | 'marketingLogs'
-      | 'fidelizaciones'
-      | 'companyActivities'
-      | 'cobranzaEvents'
-      | 'cobranzaResets',
+    colName: WorkspaceCollectionName,
     handler: (items: T[]) => void
   ) => {
     const path = `workspaces/${workspaceId}/${colName}`;
@@ -672,6 +746,8 @@ export function subscribeWorkspace(
   sub<PaymentRecord>('payments', callbacks.onPayments);
   sub<MetaReport>('metaReports', callbacks.onMetaReports);
   sub<MarketingLog>('marketingLogs', callbacks.onMarketingLogs);
+  sub<MarketingEspecial>('marketingEspeciales', callbacks.onMarketingEspeciales);
+  sub<MarketingReelSorteo>('marketingReelsSorteos', callbacks.onMarketingReelsSorteos);
   sub<FidelizacionRecord>('fidelizaciones', callbacks.onFidelizaciones);
   sub<CompanyActivityRecord>('companyActivities', callbacks.onCompanyActivities);
   sub<CobranzaEvent>('cobranzaEvents', callbacks.onCobranzaEvents);

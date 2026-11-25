@@ -2,7 +2,9 @@ import * as XLSX from 'xlsx';
 import type {
   BonusTicketState,
   Company,
+  MarketingEspecial,
   MarketingLog,
+  MarketingReelSorteo,
   MetaReport,
   PlanSector,
   PlanTask,
@@ -166,35 +168,113 @@ export function exportEmpresasExcel(companies: Company[]) {
   XLSX.writeFile(wb, `BonusTicket_Empresas_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-export function exportMarketingExcel(metaReports: MetaReport[], marketingLogs: MarketingLog[]) {
+export function exportMarketingExcel(
+  metaReports: MetaReport[],
+  marketingLogs: MarketingLog[],
+  marketingEspeciales: MarketingEspecial[] = [],
+  marketingReelsSorteos: MarketingReelSorteo[] = []
+) {
   const metaRows = metaReports.map((r) => ({
-    Periodo: r.periodo,
-    Fecha_Carga: r.fechaCarga,
+    'Período': r.periodo,
+    'Fecha de Carga': r.fechaCarga,
     Origen: r.origen,
     Alcance: r.alcance,
     Visualizaciones: r.visualizaciones,
-    Visitas_Perfil: r.visitasPerfil,
+    'Visitas al Perfil': r.visitasPerfil,
     Interacciones: r.interacciones,
-    Clics_Enlace: r.clicsEnlace,
-    Nuevos_Seguidores: r.nuevosSeguidores,
-    Analisis_Ejecutivo: r.analisisEjecutivo,
+    'Clics en Enlace': r.clicsEnlace,
+    'Nuevos Seguidores': r.nuevosSeguidores,
+    'Análisis Ejecutivo': r.analisisEjecutivo,
   }));
 
-  const logRows = marketingLogs.map((l) => ({
+  const especialesRows = marketingEspeciales.map((e) => ({
+    'Nombre del Especial': e.nombre,
+    'Fecha de Inicio': e.fechaInicio,
+    'Fecha de Fin': e.fechaFin,
+    Rubros: Array.isArray(e.rubros) ? e.rubros.join(', ') : '',
+    'Video 3 días antes': e.video3DiasAntes ? 'Sí' : 'No',
+    'Placa 1 día antes': e.placa1DiaAntes ? 'Sí' : 'No',
+    'Historias del día': e.historiasDelDia ? 'Sí' : 'No',
+    Observaciones: e.observaciones || '',
+  }));
+
+  const reelsRows = marketingReelsSorteos.map((r) => ({
+    Fecha: r.fecha,
+    'Categoría': r.categoria,
+    'Título/Descripción': r.titulo,
+    'Empresa/Comunidad': r.empresaNombre || 'Ninguna / Comunidad general',
+    Enlace: r.enlace || '',
+  }));
+
+  const weeklyLogs = marketingLogs.filter((l) => l.tipoEntrega === 'Checklist Semanal');
+  const bitacoraRows = weeklyLogs.map((l) => ({
     Semana: l.semana,
     Fecha: l.fecha,
-    Tipo_Entrega: l.tipoEntrega,
-    Empresa: l.empresaNombre || 'General',
-    Grilla_Diaria: l.grillaDiaria ? 'Sí' : 'No',
+    'Grilla Diaria': l.grillaDiaria ? 'Sí' : 'No',
     Colaboraciones: l.colaboraciones ? 'Sí' : 'No',
-    Magoya_Videos: l.magoyaVideos ? 'Sí' : 'No',
-    Promo_Duplica: l.promoDuplica ? 'Sí' : 'No',
+    'Magoya Videos': l.magoyaVideos ? 'Sí' : 'No',
+    'Promo Duplica': l.promoDuplica ? 'Sí' : 'No',
     Notas: l.notas || '',
   }));
 
+  const sheetOrHeader = (rows: Array<Record<string, unknown>>, headers: string[]) =>
+    rows.length > 0 ? XLSX.utils.json_to_sheet(rows) : XLSX.utils.aoa_to_sheet([headers]);
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(metaRows), 'Reportes_Meta');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(logRows), 'Bitacora_y_Kits');
+  XLSX.utils.book_append_sheet(
+    wb,
+    sheetOrHeader(metaRows, [
+      'Período',
+      'Fecha de Carga',
+      'Origen',
+      'Alcance',
+      'Visualizaciones',
+      'Visitas al Perfil',
+      'Interacciones',
+      'Clics en Enlace',
+      'Nuevos Seguidores',
+      'Análisis Ejecutivo',
+    ]),
+    'Reportes_Meta'
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    sheetOrHeader(especialesRows, [
+      'Nombre del Especial',
+      'Fecha de Inicio',
+      'Fecha de Fin',
+      'Rubros',
+      'Video 3 días antes',
+      'Placa 1 día antes',
+      'Historias del día',
+      'Observaciones',
+    ]),
+    'Especiales_Mensuales'
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    sheetOrHeader(reelsRows, [
+      'Fecha',
+      'Categoría',
+      'Título/Descripción',
+      'Empresa/Comunidad',
+      'Enlace',
+    ]),
+    'Reels_y_Sorteos'
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    sheetOrHeader(bitacoraRows, [
+      'Semana',
+      'Fecha',
+      'Grilla Diaria',
+      'Colaboraciones',
+      'Magoya Videos',
+      'Promo Duplica',
+      'Notas',
+    ]),
+    'Bitacora_Semanal'
+  );
   XLSX.writeFile(wb, `BonusTicket_Marketing_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 

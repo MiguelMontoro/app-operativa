@@ -405,7 +405,7 @@
         "periodo": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 40
+          "maxLength": 100
         },
         "fechaCarga": {
           "type": "string",
@@ -512,6 +512,149 @@
         }
       },
       "required": ["ownerId", "workspaceId", "semana", "tipoEntrega", "fecha", "createdAt", "updatedAt"]
+    },
+    "MarketingEspecial": {
+      "title": "MarketingEspecial",
+      "description": "Registro mensual de Especiales (Promo Duplica / Campañas) con fechas, rubros abarcados y pasos del protocolo de difusión.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "fechaInicio": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "fechaFin": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "rubros": {
+          "type": "array",
+          "description": "Lista acotada (0 a 14 elementos) de rubros oficiales abarcados por el especial."
+        },
+        "video3DiasAntes": {
+          "type": "boolean"
+        },
+        "placa1DiaAntes": {
+          "type": "boolean"
+        },
+        "historiasDelDia": {
+          "type": "boolean"
+        },
+        "observaciones": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "workspaceId",
+        "nombre",
+        "fechaInicio",
+        "fechaFin",
+        "rubros",
+        "video3DiasAntes",
+        "placa1DiaAntes",
+        "historiasDelDia",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MarketingReelSorteo": {
+      "title": "MarketingReelSorteo",
+      "description": "Bitácora de Reels armados y Sorteos realizados con categoría, empresa/comunidad vinculada y enlace directo.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fecha": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "categoria": {
+          "type": "string",
+          "enum": [
+            "Reel Comunidad (Abogados / Psicólogos / USPT / TP)",
+            "Reel Evento / Cobertura",
+            "Reel Educativo / Comodines",
+            "Reel Emocional / Magoya",
+            "Sorteo Realizado"
+          ]
+        },
+        "titulo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "enlace": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "workspaceId",
+        "fecha",
+        "categoria",
+        "titulo",
+        "createdAt",
+        "updatedAt"
+      ]
     },
     "Fidelizacion": {
       "title": "Fidelizacion",
@@ -809,7 +952,15 @@
     },
     "/workspaces/{workspaceId}/marketingLogs/{logId}": {
       "schema": { "$ref": "#/entities/MarketingLog" },
-      "description": "Bitácora semanal de Marketing y entregas de kits/reels por empresa."
+      "description": "Bitácora semanal de Marketing con checklist de rutina."
+    },
+    "/workspaces/{workspaceId}/marketingEspeciales/{especialId}": {
+      "schema": { "$ref": "#/entities/MarketingEspecial" },
+      "description": "Registro mensual de Especiales (Promo Duplica / Campañas) y seguimiento de protocolo."
+    },
+    "/workspaces/{workspaceId}/marketingReelsSorteos/{reelId}": {
+      "schema": { "$ref": "#/entities/MarketingReelSorteo" },
+      "description": "Bitácora de Reels armados y Sorteos realizados con enlaces y categorías."
     },
     "/workspaces/{workspaceId}/fidelizaciones/{fidelizacionId}": {
       "schema": { "$ref": "#/entities/Fidelizacion" },

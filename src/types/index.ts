@@ -268,6 +268,57 @@ export interface MarketingLog {
   notas?: string;
 }
 
+export const MARKETING_ESPECIAL_RUBROS = [
+  'Gastronomía',
+  'Heladería',
+  'Indumentaria',
+  'Tecnología',
+  'Automotores',
+  'Juguetería',
+  'Cuidado Personal',
+  'Peluquería',
+  'Óptica',
+  'Gimnasios',
+  'Supermercados',
+  'Carnicerías',
+  'Congelados',
+  'Pastas y Dulces',
+] as const;
+
+export type MarketingEspecialRubro = (typeof MARKETING_ESPECIAL_RUBROS)[number];
+
+export interface MarketingEspecial {
+  id: string;
+  nombre: string;
+  fechaInicio: string; // YYYY-MM-DD
+  fechaFin: string; // YYYY-MM-DD
+  rubros: MarketingEspecialRubro[];
+  video3DiasAntes: boolean;
+  placa1DiaAntes: boolean;
+  historiasDelDia: boolean;
+  observaciones?: string;
+}
+
+export const MARKETING_REEL_CATEGORIAS = [
+  'Reel Comunidad (Abogados / Psicólogos / USPT / TP)',
+  'Reel Evento / Cobertura',
+  'Reel Educativo / Comodines',
+  'Reel Emocional / Magoya',
+  'Sorteo Realizado',
+] as const;
+
+export type MarketingReelCategoria = (typeof MARKETING_REEL_CATEGORIAS)[number];
+
+export interface MarketingReelSorteo {
+  id: string;
+  fecha: string; // YYYY-MM-DD
+  categoria: MarketingReelCategoria;
+  titulo: string;
+  empresaId?: string;
+  empresaNombre?: string;
+  enlace?: string;
+}
+
 export interface BonusTicketState {
   companies: Company[];
   tasks: WeeklyTask[];
@@ -275,6 +326,8 @@ export interface BonusTicketState {
   payments: PaymentRecord[];
   metaReports: MetaReport[];
   marketingLogs: MarketingLog[];
+  marketingEspeciales: MarketingEspecial[];
+  marketingReelsSorteos: MarketingReelSorteo[];
   fidelizaciones: FidelizacionRecord[];
   companyActivities: CompanyActivityRecord[];
   cobranzaEvents: CobranzaEvent[];
